@@ -1,0 +1,115 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  passwordHash String
+  displayName  String
+  role         String   @default("editor")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  ownedWorkbooks Workbook[]       @relation("WorkbookOwner")
+  memberships    WorkbookMember[]
+  cellChanges    CellChange[]
+}
+
+model Workbook {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  ownerId   String   @db.Uuid
+  owner     User     @relation("WorkbookOwner", fields: [ownerId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members WorkbookMember[]
+  sheets  Sheet[]
+  events  WorkbookEvent[]
+
+  @@index([ownerId])
+}
+
+model WorkbookMember {
+  workbookId String   @db.Uuid
+  userId     String   @db.Uuid
+  role       String
+  createdAt  DateTime @default(now())
+
+  workbook Workbook @relation(fields: [workbookId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([workbookId, userId])
+  @@index([userId])
+}
+
+model Sheet {
+  id         String   @id @default(uuid()) @db.Uuid
+  workbookId String   @db.Uuid
+  name       String
+  position   Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  workbook Workbook     @relation(fields: [workbookId], references: [id], onDelete: Cascade)
+  cells    Cell[]
+  changes  CellChange[]
+
+  @@unique([workbookId, name])
+  @@index([workbookId])
+}
+
+model Cell {
+  id        String   @id @default(uuid()) @db.Uuid
+  sheetId   String   @db.Uuid
+  row       Int
+  column    Int
+  value     Json?
+  version   Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  sheet Sheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+
+  @@unique([sheetId, row, column])
+}
+
+model CellChange {
+  id         String   @id @default(uuid()) @db.Uuid
+  mutationId String   @db.Uuid
+  sheetId    String   @db.Uuid
+  cellId     String   @db.Uuid
+  userId     String   @db.Uuid
+  row        Int
+  column     Int
+  oldValue   Json?
+  newValue   Json?
+  version    Int
+  seq        Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  sheet Sheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@index([mutationId])
+  @@index([sheetId, createdAt])
+}
+
+model WorkbookEvent {
+  seq        Int      @id @default(autoincrement())
+  workbookId String   @db.Uuid
+  sheetId    String?  @db.Uuid
+  type       String
+  payload    Json
+  createdAt  DateTime @default(now())
+
+  workbook Workbook @relation(fields: [workbookId], references: [id], onDelete: Cascade)
+
+  @@index([workbookId, seq])
+  @@index([sheetId, seq])
+}

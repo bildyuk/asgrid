@@ -1,0 +1,14 @@
+{
+  "name": "asgrid",
+  "private": true,
+  "packageManager": "pnpm@9.12.0",
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "dev:api": "pnpm --filter @asgrid/api dev",
+    "dev:web": "pnpm --filter @asgrid/web dev",
+    "build": "pnpm -r build",
+    "db:migrate": "pnpm --filter @asgrid/api prisma migrate dev",
+    "db:generate": "pnpm --filter @asgrid/api prisma generate",
+    "db:studio": "pnpm --filter @asgrid/api prisma studio"
+  }
+}
